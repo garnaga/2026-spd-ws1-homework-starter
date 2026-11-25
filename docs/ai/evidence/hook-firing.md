@@ -39,6 +39,7 @@ The session attempted the edit and it was denied. From `/tmp/hook-live.json`, `p
   }
 }
 ```
+(path elided for length)
 
 And the session's final result text confirms the block message reached the model:
 
@@ -49,7 +50,7 @@ And the session's final result text confirms the block message reached the model
 ## Note on hook scope
 
 Current behavior (after the a1cca8b fix):
-- `Edit`/`MultiEdit`/`NotebookEdit` on any `db/migrations/` path are **blocked** — these tools always modify an existing file.
+- `Edit`/`MultiEdit`/`NotebookEdit` on any `db/migrations/` path are **blocked** — these tools always modify an existing file. (NotebookEdit payloads carry `notebook_path` rather than `file_path`; the hook now falls back to `notebook_path`, so NotebookEdit on a migration is genuinely blocked.)
 - `Write` that would **overwrite an existing** `db/migrations/` file is **blocked** (applied migrations are immutable).
 - `Write` that **creates a new** `db/migrations/NNN_snake_case_name.sql` is **allowed** — that is the sanctioned, forward-only way to change schema (verified locally: a Write payload for `003_relax_title_length.sql` exits 0, while an overwrite payload for `001_create_tasks.sql` exits 2 with the BLOCKED message).
 - Shell-based (`Bash`) edits to migrations are not covered by this hook (PreToolUse matcher is `Edit|Write|MultiEdit|NotebookEdit`) and are caught in review instead.

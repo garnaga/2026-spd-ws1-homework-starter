@@ -27,7 +27,13 @@ try {
 }
 
 const toolName = typeof payload?.tool_name === 'string' ? payload.tool_name : '';
-const filePath = typeof payload?.tool_input?.file_path === 'string' ? payload.tool_input.file_path : '';
+const toolInput = payload?.tool_input ?? {};
+const filePath =
+  typeof toolInput.file_path === 'string'
+    ? toolInput.file_path
+    : typeof toolInput.notebook_path === 'string'
+      ? toolInput.notebook_path
+      : '';
 
 if (!filePath) {
   process.exit(0);

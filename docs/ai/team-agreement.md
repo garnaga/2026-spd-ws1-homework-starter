@@ -13,7 +13,7 @@ Levels: **L0** no agent · **L1** agent suggests, human writes · **L2** agent w
 |---|---|---|---|
 | secrets/`.env` access | L0 | denied by `.claude/settings.json`; nothing to verify — blocked | — |
 | editing an applied migration | L0 | blocked by `protect-migrations` hook (evidence: `docs/ai/evidence/hook-firing.md`) | — |
-| new migration | L3 | `add-migration` skill check: fresh-DB apply + tests green + rollback note | PR review |
+| new migration | L3 | `add-migration` skill check: `npm run db:reset` (fresh-DB apply) + tests green + rollback note | PR review |
 | app code / API (`lib/`, `app/`) | L3 | `npm test && npm run typecheck` green; route behavior covered by tests | PR review |
 | harness files (`AGENTS.md`, `.claude/**`, `docs/ai/**`) | L2 | every line reviewed; CODEOWNERS enforces `@garnaga` approval | `@garnaga` |
 
