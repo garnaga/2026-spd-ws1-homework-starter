@@ -13,7 +13,7 @@ $ node .claude/hooks/protect-migrations.mjs < docs/ai/sample-payload.json
 Verbatim output (stdout + stderr), exit code:
 
 ```
-BLOCKED: db/migrations/001_create_tasks.sql is under db/migrations/. Applied migrations are immutable — editing one silently rewrites history for every existing database. Add a new numbered migration instead; see .claude/skills/add-migration/SKILL.md.
+BLOCKED: db/migrations/001_create_tasks.sql is under db/migrations/. Applied migrations are immutable — never edit or overwrite them; schema changes are new forward-only files named NNN_snake_case_name.sql (see .claude/skills/add-migration/SKILL.md).
 exit code: 2
 ```
 
@@ -35,20 +35,21 @@ The session attempted the edit and it was denied. From `/tmp/hook-live.json`, `p
 {
   "tool_name": "Edit",
   "tool_input": {
-    "file_path": ".../db/migrations/001_create_tasks.sql",
-    "old_string": "  title      text    not null check (length(title) between 1 and 120),",
-    "new_string": "  title      text    not null check (length(title) between 1 and 200),",
-    "replace_all": false
+    "file_path": ".../db/migrations/001_create_tasks.sql"
   }
 }
 ```
 
 And the session's final result text confirms the block message reached the model:
 
-> "1. Editing `001_create_tasks.sql` (120 → 200) → blocked, told to add a new migration instead."
+> "I have to stop here: your requested edit was **blocked by the repo's `protect-migrations` hook** (`.claude/hooks/protect-migrations.mjs`), which treats everything under `db/migrations/` as immutable once applied. The edit has not been applied — no file changed."
 
 `git status db/migrations/` is clean after the run — the migration file was not modified.
 
 ## Note on hook scope
 
-The live run surfaced a side effect worth a follow-up: the hook denies **any** `Edit`/`Write` under `db/migrations/`, including *creating a brand-new* numbered migration (the nested session's attempt to write `003_task_title_max_200.sql` was also denied, even though the block message tells it to do exactly that). The guard still satisfies its primary purpose — applied migrations cannot be rewritten — but adding new migrations via Claude requires adjusting the hook (e.g. allow writes to files not yet tracked in `schema_migrations`).
+Current behavior (after the a1cca8b fix):
+- `Edit`/`MultiEdit`/`NotebookEdit` on any `db/migrations/` path are **blocked** — these tools always modify an existing file.
+- `Write` that would **overwrite an existing** `db/migrations/` file is **blocked** (applied migrations are immutable).
+- `Write` that **creates a new** `db/migrations/NNN_snake_case_name.sql` is **allowed** — that is the sanctioned, forward-only way to change schema (verified locally: a Write payload for `003_relax_title_length.sql` exits 0, while an overwrite payload for `001_create_tasks.sql` exits 2 with the BLOCKED message).
+- Shell-based (`Bash`) edits to migrations are not covered by this hook (PreToolUse matcher is `Edit|Write|MultiEdit|NotebookEdit`) and are caught in review instead.
